@@ -16,4 +16,25 @@ lint:
 $(BREW_PREFIX)/bin/migrate:
 	@brew install golang-migrate
 
-.PHONY: all build deps lint test
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f --tail=100
+
+docker-migrate:
+	docker compose run --rm migrate
+
+docker-psql:
+	docker compose exec postgres psql -U apollo apollo
+
+docker-nuke:
+	docker compose down -v
+
+.PHONY: all build deps lint test docker-build docker-up docker-down docker-logs docker-migrate docker-psql docker-nuke

@@ -1,7 +1,9 @@
 /apollo
 tmp/
 .env
+.env.docker
 .envrc
 dump.rdb
 cpu.pprof
 mem.pprof
+secrets/*.p8
