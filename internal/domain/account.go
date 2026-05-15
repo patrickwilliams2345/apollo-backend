@@ -51,7 +51,8 @@ func (acct *Account) Validate() error {
 		validation.Field(&acct.Username, validation.Required, validation.Length(3, 32)),
 		validation.Field(&acct.AccountID, validation.Required, validation.Length(4, 9)),
 		validation.Field(&acct.RedditClientID, validation.Required),
-		validation.Field(&acct.RedditClientSecret, validation.Required),
+		// RedditClientSecret intentionally not Required — installed-app
+		// Reddit credentials legitimately have an empty secret.
 		validation.Field(&acct.RedditUserAgent, validation.Required),
 	)
 }

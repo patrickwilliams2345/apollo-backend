@@ -157,9 +157,8 @@ func (rc *Client) NewAuthenticatedClient(creds AuthCredentials) *AuthenticatedCl
 		panic("requires a Reddit OAuth client ID")
 	}
 
-	if creds.ClientSecret == "" {
-		panic("requires a Reddit OAuth client secret")
-	}
+	// ClientSecret may legitimately be empty for installed-app Reddit
+	// credentials. Reddit accepts `Basic base64(client_id:)` for token refresh.
 
 	if creds.UserAgent == "" {
 		panic("requires a User-Agent")
