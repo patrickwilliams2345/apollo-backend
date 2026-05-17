@@ -307,12 +307,17 @@ func (nc *notificationsConsumer) Consume(delivery rmq.Delivery) {
 		notification.Topic = nc.apnsTopic
 		notification.Payload = payloadFromMessage(account, msg, msgs.Count)
 
-		client := nc.papns
-		if account.Development {
-			client = nc.dapns
-		}
-
 		for _, device := range devices {
+			// Pick gateway per-device. The original Apollo binary always
+			// used production APNs, so this used to key off account.Development.
+			// Self-hosted sideloaded builds get sandbox tokens (paid dev cert);
+			// device.Sandbox is set at registration time (and overridable via
+			// APPLE_APNS_SANDBOX on the api).
+			client := nc.papns
+			if device.Sandbox {
+				client = nc.dapns
+			}
+
 			notification.DeviceToken = device.APNSToken
 
 			res, err := client.PushWithContext(ctx, notification)

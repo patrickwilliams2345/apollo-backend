@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/dustin/go-humanize/english"
@@ -26,6 +27,16 @@ func (a *api) upsertDeviceHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(d); err != nil {
 		a.errorResponse(w, r, 500, err)
 		return
+	}
+
+	// Apollo's release-signed App Store binary sent sandbox=false because it
+	// always used production APNs. A sideloaded build signed under a paid
+	// developer account, in contrast, gets sandbox APNs tokens — and
+	// `apns2.NewTokenClient` defaults to sandbox unless told otherwise,
+	// matched against this flag. APPLE_APNS_SANDBOX overrides whatever the
+	// client sent so a self-host can pin the gateway to match its signing.
+	if v := os.Getenv("APPLE_APNS_SANDBOX"); v != "" {
+		d.Sandbox = v == "1" || strings.EqualFold(v, "true")
 	}
 
 	if err := a.deviceRepo.CreateOrUpdate(ctx, d); err != nil {
