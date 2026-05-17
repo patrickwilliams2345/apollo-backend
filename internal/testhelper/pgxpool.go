@@ -1,7 +1,6 @@
 package testhelper
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 func NewTestPgxConn(t *testing.T) *pgx.Conn {
 	t.Helper()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	connString := os.Getenv("DATABASE_URL")
 

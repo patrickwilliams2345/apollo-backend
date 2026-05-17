@@ -26,7 +26,6 @@ func TestAuthenticatedClientObfuscatedToken(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		rac := rc.NewAuthenticatedClient(reddit.AuthCredentials{
 			RedditID:     "<ID>",
 			RefreshToken: "<REFRESH>",

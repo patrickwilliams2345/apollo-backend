@@ -26,7 +26,6 @@ func TestValidate(t *testing.T) {
 	}
 
 	for scenario, tc := range tt {
-		tc := tc
 		t.Run(scenario, func(t *testing.T) {
 			t.Parallel()
 

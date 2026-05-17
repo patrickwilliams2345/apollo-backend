@@ -1,7 +1,6 @@
 package repository_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/christianselig/apollo-backend/internal/domain"
@@ -13,7 +12,7 @@ import (
 func NewTestPostgresWatcher(t *testing.T) domain.WatcherRepository {
 	t.Helper()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	conn := testhelper.NewTestPgxConn(t)
 
 	tx, err := conn.Begin(ctx)

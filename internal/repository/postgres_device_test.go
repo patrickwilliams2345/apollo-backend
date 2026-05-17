@@ -1,7 +1,6 @@
 package repository_test
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"testing"
@@ -19,7 +18,7 @@ const testToken = "313a182b63224821f5595f42aa019de850a0e7b776253659a9aac8140bb8a
 func NewTestPostgresDevice(t *testing.T) domain.DeviceRepository {
 	t.Helper()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	conn := testhelper.NewTestPgxConn(t)
 
 	tx, err := conn.Begin(ctx)
@@ -37,7 +36,7 @@ func NewTestPostgresDevice(t *testing.T) domain.DeviceRepository {
 func TestPostgresDevice_GetByID(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := NewTestPostgresDevice(t)
 
 	dev := &domain.Device{APNSToken: testToken}
@@ -70,7 +69,7 @@ func TestPostgresDevice_GetByID(t *testing.T) {
 func TestPostgresDevice_Create(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := NewTestPostgresDevice(t)
 
 	testCases := map[string]struct {
@@ -98,7 +97,7 @@ func TestPostgresDevice_Create(t *testing.T) {
 func TestPostgresDevice_Update(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := NewTestPostgresDevice(t)
 
 	testCases := map[string]struct {
