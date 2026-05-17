@@ -418,6 +418,9 @@ func enqueueAccounts(ctx context.Context, logger *zap.Logger, statsd statsd.Clie
 	for i := 0; i < accountEnqueueSeconds; i++ {
 		left := i * chunkSize
 		right := (i + 1) * chunkSize
+		if left > len(ids) {
+			left = len(ids)
+		}
 		if right > len(ids) {
 			right = len(ids)
 		}
