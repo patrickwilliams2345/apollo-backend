@@ -47,10 +47,17 @@ func NewRequest(opts ...RequestOption) *Request {
 		client:             nil,
 	}
 
-	req.query.Set("raw_json", "1")
-
 	for _, opt := range opts {
 		opt(req)
+	}
+
+	// raw_json=1 strips HTML-entity escaping from content payloads — useful
+	// for /r/..., /api/info, /message/inbox, etc. Reddit's WAF (Fastly) on
+	// www.reddit.com/api/v1/access_token rejects requests carrying this
+	// param with a "blocked by network security" 403 HTML page, so we only
+	// add it for oauth.reddit.com calls where it actually matters.
+	if strings.HasPrefix(req.url, "https://oauth.reddit.com/") {
+		req.query.Set("raw_json", "1")
 	}
 
 	return req
@@ -66,6 +73,14 @@ func (r *Request) HTTPRequest(ctx context.Context) (*http.Request, error) {
 		ua = defaultUserAgent
 	}
 	req.Header.Add("User-Agent", ua)
+
+	// http.NewRequestWithContext does not auto-set Content-Type for form
+	// bodies (only http.PostForm does). Reddit's edge layer routes POSTs
+	// without it to the HTML web frontend, which serves the "blocked by
+	// network security" page — so set it explicitly whenever there's a body.
+	if r.method == http.MethodPost && len(r.body) > 0 {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 
 	if r.token != "" {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", r.token))
