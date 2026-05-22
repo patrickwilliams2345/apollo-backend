@@ -11,6 +11,7 @@ import (
 	"github.com/adjust/rmq/v5"
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sideshow/apns2/token"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
@@ -35,7 +36,7 @@ type stuckNotificationsWorker struct {
 	accountRepo domain.AccountRepository
 }
 
-func NewStuckNotificationsWorker(ctx context.Context, logger *zap.Logger, tracer trace.Tracer, statsd statsd.ClientInterface, db *pgxpool.Pool, redis *redis.Client, queue rmq.Connection, consumers int) Worker {
+func NewStuckNotificationsWorker(ctx context.Context, logger *zap.Logger, tracer trace.Tracer, statsd statsd.ClientInterface, db *pgxpool.Pool, redis *redis.Client, queue rmq.Connection, consumers int, _ *token.Token, _ string) Worker {
 	reddit := reddit.NewClient(
 		tracer,
 		statsd,

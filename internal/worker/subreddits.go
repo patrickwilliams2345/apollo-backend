@@ -19,7 +19,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
-	"github.com/christianselig/apollo-backend/internal/cmdutil"
 	"github.com/christianselig/apollo-backend/internal/domain"
 	"github.com/christianselig/apollo-backend/internal/reddit"
 	"github.com/christianselig/apollo-backend/internal/repository"
@@ -51,27 +50,13 @@ const (
 	subredditNotificationBodyFormat  = "r/%s: \u201c%s\u201d"
 )
 
-func NewSubredditsWorker(ctx context.Context, logger *zap.Logger, tracer trace.Tracer, statsd statsd.ClientInterface, db *pgxpool.Pool, redis *redis.Client, queue rmq.Connection, consumers int) Worker {
+func NewSubredditsWorker(ctx context.Context, logger *zap.Logger, tracer trace.Tracer, statsd statsd.ClientInterface, db *pgxpool.Pool, redis *redis.Client, queue rmq.Connection, consumers int, apns *token.Token, apnsTopic string) Worker {
 	reddit := reddit.NewClient(
 		tracer,
 		statsd,
 		redis,
 		consumers,
 	)
-
-	var apns *token.Token
-	{
-		authKey, err := token.AuthKeyFromFile(os.Getenv("APPLE_KEY_PATH"))
-		if err != nil {
-			panic(err)
-		}
-
-		apns = &token.Token{
-			AuthKey: authKey,
-			KeyID:   os.Getenv("APPLE_KEY_ID"),
-			TeamID:  os.Getenv("APPLE_TEAM_ID"),
-		}
-	}
 
 	return &subredditsWorker{
 		ctx,
@@ -83,7 +68,7 @@ func NewSubredditsWorker(ctx context.Context, logger *zap.Logger, tracer trace.T
 		queue,
 		reddit,
 		apns,
-		cmdutil.APNSTopic(),
+		apnsTopic,
 		consumers,
 
 		repository.NewPostgresAccount(db),

@@ -45,7 +45,13 @@ func APICmd(ctx context.Context) *cobra.Command {
 			}
 			defer redis.Close()
 
-			api := api.NewAPI(ctx, logger, statsd, redis, db)
+			apns, apnsTopic, err := cmdutil.LoadAPNS()
+			if err != nil {
+				logger.Error("apns startup failed", zap.Error(err))
+				return err
+			}
+
+			api := api.NewAPI(ctx, logger, statsd, redis, db, apns, apnsTopic)
 			srv := api.Server(port)
 
 			go func() { _ = srv.ListenAndServe() }()

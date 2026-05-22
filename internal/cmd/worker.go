@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
+	"go.uber.org/zap"
 
 	"github.com/christianselig/apollo-backend/internal/cmdutil"
 	"github.com/christianselig/apollo-backend/internal/worker"
@@ -79,7 +80,13 @@ func WorkerCmd(ctx context.Context) *cobra.Command {
 				return fmt.Errorf("invalid queue: %s", queueID)
 			}
 
-			worker := workerFn(ctx, logger, tracer, statsd, db, redis, queue, consumers)
+			apns, apnsTopic, err := cmdutil.LoadAPNS()
+			if err != nil {
+				logger.Error("apns startup failed", zap.Error(err))
+				return err
+			}
+
+			worker := workerFn(ctx, logger, tracer, statsd, db, redis, queue, consumers, apns, apnsTopic)
 			if err := worker.Start(); err != nil {
 				return err
 			}

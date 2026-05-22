@@ -8,13 +8,14 @@ import (
 	"github.com/adjust/rmq/v5"
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sideshow/apns2/token"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
 const pollDuration = 100 * time.Millisecond
 
-type NewWorkerFn func(context.Context, *zap.Logger, trace.Tracer, statsd.ClientInterface, *pgxpool.Pool, *redis.Client, rmq.Connection, int) Worker
+type NewWorkerFn func(context.Context, *zap.Logger, trace.Tracer, statsd.ClientInterface, *pgxpool.Pool, *redis.Client, rmq.Connection, int, *token.Token, string) Worker
 type Worker interface {
 	Start() error
 	Stop()
