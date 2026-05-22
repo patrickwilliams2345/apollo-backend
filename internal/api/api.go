@@ -17,7 +17,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
-	"github.com/christianselig/apollo-backend/internal/cmdutil"
 	"github.com/christianselig/apollo-backend/internal/domain"
 	"github.com/christianselig/apollo-backend/internal/reddit"
 	"github.com/christianselig/apollo-backend/internal/repository"
@@ -38,7 +37,7 @@ type api struct {
 	userRepo      domain.UserRepository
 }
 
-func NewAPI(ctx context.Context, logger *zap.Logger, statsd statsd.ClientInterface, redis *redis.Client, pool *pgxpool.Pool) *api {
+func NewAPI(ctx context.Context, logger *zap.Logger, statsd statsd.ClientInterface, redis *redis.Client, pool *pgxpool.Pool, apns *token.Token, apnsTopic string) *api {
 	tracer := otel.Tracer("api")
 
 	reddit := reddit.NewClient(
@@ -47,20 +46,6 @@ func NewAPI(ctx context.Context, logger *zap.Logger, statsd statsd.ClientInterfa
 		redis,
 		16,
 	)
-
-	var apns *token.Token
-	{
-		authKey, err := token.AuthKeyFromFile(os.Getenv("APPLE_KEY_PATH"))
-		if err != nil {
-			panic(err)
-		}
-
-		apns = &token.Token{
-			AuthKey: authKey,
-			KeyID:   os.Getenv("APPLE_KEY_ID"),
-			TeamID:  os.Getenv("APPLE_TEAM_ID"),
-		}
-	}
 
 	accountRepo := repository.NewPostgresAccount(pool)
 	deviceRepo := repository.NewPostgresDevice(pool)
@@ -75,7 +60,7 @@ func NewAPI(ctx context.Context, logger *zap.Logger, statsd statsd.ClientInterfa
 		statsd:     statsd,
 		reddit:     reddit,
 		apns:       apns,
-		apnsTopic:  cmdutil.APNSTopic(),
+		apnsTopic:  apnsTopic,
 		httpClient: client,
 
 		accountRepo:   accountRepo,

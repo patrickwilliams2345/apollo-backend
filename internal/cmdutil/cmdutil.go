@@ -12,6 +12,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sideshow/apns2/token"
 
 	"go.uber.org/zap"
 )
@@ -30,15 +31,41 @@ func NewLogger(service string) *zap.Logger {
 	return logger
 }
 
-// APNSTopic returns the configured APNs topic (bundle ID of the sideloaded
-// Apollo build). Panics if APPLE_APNS_TOPIC is unset — there's no sensible
-// default since the bundle ID is per-deployment.
-func APNSTopic() string {
+// LoadAPNS reads the four APNs env vars (APPLE_KEY_PATH, APPLE_KEY_ID,
+// APPLE_TEAM_ID, APPLE_APNS_TOPIC) and returns the signing token plus topic.
+// Returns a descriptive error naming the missing var or unreadable file so
+// startup failures show up as a single log line instead of a panic stack.
+func LoadAPNS() (*token.Token, string, error) {
+	keyPath := os.Getenv("APPLE_KEY_PATH")
+	if keyPath == "" {
+		return nil, "", fmt.Errorf("APPLE_KEY_PATH env var is required (path to the APNs .p8 auth key)")
+	}
+
+	authKey, err := token.AuthKeyFromFile(keyPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("loading APNs auth key from APPLE_KEY_PATH (%s): %w", keyPath, err)
+	}
+
+	keyID := os.Getenv("APPLE_KEY_ID")
+	if keyID == "" {
+		return nil, "", fmt.Errorf("APPLE_KEY_ID env var is required (APNs key ID from developer.apple.com)")
+	}
+
+	teamID := os.Getenv("APPLE_TEAM_ID")
+	if teamID == "" {
+		return nil, "", fmt.Errorf("APPLE_TEAM_ID env var is required (Apple Developer team ID)")
+	}
+
 	topic := os.Getenv("APPLE_APNS_TOPIC")
 	if topic == "" {
-		panic("APPLE_APNS_TOPIC env var is required (bundle ID of the sideloaded Apollo build)")
+		return nil, "", fmt.Errorf("APPLE_APNS_TOPIC env var is required (bundle ID of the sideloaded Apollo build)")
 	}
-	return topic
+
+	return &token.Token{
+		AuthKey: authKey,
+		KeyID:   keyID,
+		TeamID:  teamID,
+	}, topic, nil
 }
 
 func NewStatsdClient(tags ...string) (statsd.ClientInterface, error) {
