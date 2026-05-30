@@ -6,6 +6,9 @@ This fork is meant to be run together with **[JeffreyCA/Apollo-ImprovedCustomApi
 
 Single-tenant by design: one deployment serves one sideloaded Apollo build (one bundle ID, one Apple Developer team), and can be shared with a small group of friends running the same build.
 
+> [!TIP]
+> **New to self-hosting this?** Start with the **[step-by-step Getting Started guide](GETTING_STARTED.md)** — it walks you all the way from installing Docker and creating an APNs key to a test push landing on your phone (and optionally exposing the backend to the internet). This README is the technical reference; that guide is the on-ramp.
+
 ## Before you start
 
 Three hard prerequisites — none of these are negotiable, and skipping any of them produces failure modes that look like backend bugs but aren't:
