@@ -8,7 +8,7 @@ x-worker: &worker
   build:
     context: .
     dockerfile: Dockerfile
-  image: ${APOLLO_IMAGE:-ghcr.io/nickclyde/apollo-backend:latest}
+  image: ${APOLLO_IMAGE:-ghcr.io/apollo-reborn/apollo-backend:latest}
   <<: *app-env
   volumes: *app-volumes
   depends_on:
@@ -110,7 +110,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${APOLLO_IMAGE:-ghcr.io/nickclyde/apollo-backend:latest}
+    image: ${APOLLO_IMAGE:-ghcr.io/apollo-reborn/apollo-backend:latest}
     command: ["api"]
     <<: *app-env
     volumes: *app-volumes

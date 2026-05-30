@@ -151,7 +151,7 @@ cd apollo-backend
 ```
 
 You **do not need Go or any build tools.** The bundled `docker-compose.yml` pulls a prebuilt image
-from GitHub Container Registry (`ghcr.io/nickclyde/apollo-backend`) automatically.
+from GitHub Container Registry (`ghcr.io/apollo-reborn/apollo-backend`) automatically.
 
 > **Only if you fork and change the code:** you'll need to build your own image instead of pulling.
 > Use `make docker-build` (or `docker compose up -d --build`). Note that `docker compose up` reuses
