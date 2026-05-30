@@ -33,7 +33,7 @@ The original [Apollo for Reddit](https://apolloapp.io/) app had a backend that d
 notifications (inbox replies, mentions) and ran subreddit/user *watchers*. That backend was shut
 down in 2023. **This project is a self-hostable revival of it.**
 
-Paired with **[JeffreyCA's Apollo-ImprovedCustomApi tweak](https://github.com/JeffreyCA/Apollo-ImprovedCustomApi)**
+Paired with **[the Apollo-Reborn tweak](https://github.com/Apollo-Reborn/Apollo-Reborn)**
 (the tweak that lets a sideloaded Apollo build use *your own* Reddit credentials), running this
 backend brings notifications and watchers back to life. You run one copy of this backend for
 yourself (and optionally a few friends on the same build) — it's **single-tenant by design**.
@@ -68,7 +68,7 @@ bugs but aren't — so confirm each one before you start.
    every notification. (You'll create this App ID in [Step 3](#3-set-up-apple-app-id-apns-key-team-id).)
 
 4. **A sideloaded Apollo build re-signed under that bundle ID, with the
-   [Apollo-ImprovedCustomApi tweak](https://github.com/JeffreyCA/Apollo-ImprovedCustomApi) installed**
+   [Apollo-Reborn tweak](https://github.com/Apollo-Reborn/Apollo-Reborn) installed**
    and its Reddit Custom API already working (i.e. you can already browse Reddit in the app using
    your own API key). This guide picks up *after* that part is working.
 
@@ -146,7 +146,7 @@ a Linux box or VPS is sturdier — but it works for testing.
 Clone the repository and move into it:
 
 ```bash
-git clone https://github.com/nickclyde/apollo-backend
+git clone https://github.com/Apollo-Reborn/apollo-backend
 cd apollo-backend
 ```
 
@@ -261,7 +261,7 @@ fails to inject them. For a single-user setup it's harmless (and a good safety n
 here too. If you do, the **User Agent must follow Reddit's format**, including your username:
 `ios:com.yourname.Apollo:v1.0 (by /u/yourusername)`. You can review/create Reddit API credentials at
 [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps); see the
-[tweak's README](https://github.com/JeffreyCA/Apollo-ImprovedCustomApi) for the recommended setup.
+[tweak's README](https://github.com/Apollo-Reborn/Apollo-Reborn) for the recommended setup.
 
 **Leave these defaults alone** (they're already correct for the bundled stack):
 - `APPLE_KEY_PATH` stays `/etc/secrets/apple.p8`.
