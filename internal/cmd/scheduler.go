@@ -101,6 +101,11 @@ func SchedulerCmd(ctx context.Context) *cobra.Command {
 				return err
 			}
 
+			liveActivitiesQueue, err := queue.OpenQueue("live-activities")
+			if err != nil {
+				return err
+			}
+
 			s := gocron.NewScheduler(time.UTC)
 			s.SetMaxConcurrentJobs(8, gocron.WaitMode)
 
@@ -109,7 +114,9 @@ func SchedulerCmd(ctx context.Context) *cobra.Command {
 			_, _ = s.Every(5).Seconds().Do(func() { enqueueUsers(ctx, logger, statsd, db, userQueue) })
 			_, _ = s.Every(5).Seconds().Do(func() { cleanQueues(logger, queue) })
 			_, _ = s.Every(5).Seconds().Do(func() { enqueueStuckAccounts(ctx, logger, statsd, db, stuckNotificationsQueue) })
+			_, _ = s.Every(5).Seconds().Do(func() { enqueueLiveActivities(ctx, logger, statsd, db, redis, luaSha, liveActivitiesQueue) })
 			_, _ = s.Every(1).Minute().Do(func() { reportStats(ctx, logger, statsd, db) })
+			_, _ = s.Every(1).Minute().Do(func() { pruneLiveActivities(ctx, logger, db) })
 			//_, _ = s.Every(1).Minute().Do(func() { pruneAccounts(ctx, logger, db) })
 			s.StartAsync()
 
@@ -145,6 +152,80 @@ func evalScript(ctx context.Context, redis *redis.Client) (string, error) {
 	`, domain.NotificationCheckTimeout.Seconds())
 
 	return redis.ScriptLoad(ctx, lua).Result()
+}
+
+func enqueueLiveActivities(ctx context.Context, logger *zap.Logger, statsd statsd.ClientInterface, pool *pgxpool.Pool, redisConn *redis.Client, luaSha string, queue rmq.Queue) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	now := time.Now()
+	next := now.Add(domain.LiveActivityCheckInterval)
+
+	ats := []string{}
+
+	defer func() {
+		tags := []string{"queue:live-activities"}
+		_ = statsd.Histogram("apollo.queue.enqueued", float64(len(ats)), tags, 1)
+		_ = statsd.Histogram("apollo.queue.runtime", float64(time.Since(now).Milliseconds()), tags, 1)
+	}()
+
+	stmt := `UPDATE live_activities
+		SET next_check_at = $2
+		WHERE id IN (
+			SELECT id
+			FROM live_activities
+			WHERE next_check_at < $1
+			ORDER BY next_check_at
+			FOR UPDATE SKIP LOCKED
+			LIMIT 1000
+		)
+		RETURNING live_activities.apns_token`
+
+	rows, err := pool.Query(ctx, stmt, now, next)
+	if err != nil {
+		logger.Error("failed to fetch batch of live activities", zap.Error(err))
+		return
+	}
+	for rows.Next() {
+		var at string
+		_ = rows.Scan(&at)
+		ats = append(ats, at)
+	}
+	rows.Close()
+
+	if len(ats) == 0 {
+		return
+	}
+
+	batch, err := redisConn.EvalSha(ctx, luaSha, []string{"locks:live-activities"}, ats).StringSlice()
+	if err != nil {
+		logger.Error("failed to lock live activities", zap.Error(err))
+		return
+	}
+
+	if len(batch) == 0 {
+		return
+	}
+
+	logger.Debug("enqueueing live activity batch", zap.Int("count", len(batch)), zap.Time("start", now))
+
+	if err = queue.Publish(batch...); err != nil {
+		logger.Error("failed to enqueue live activity batch", zap.Error(err))
+	}
+}
+
+func pruneLiveActivities(ctx context.Context, logger *zap.Logger, pool *pgxpool.Pool) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Keep expired rows around briefly so the worker can deliver the final
+	// "end" push (which deletes the row itself); this only reaps stragglers.
+	cutoff := time.Now().Add(-10 * time.Minute)
+	lar := repository.NewPostgresLiveActivity(pool)
+
+	if err := lar.RemoveStale(ctx, cutoff); err != nil {
+		logger.Error("failed to clean stale live activities", zap.Error(err))
+	}
 }
 
 func pruneAccounts(ctx context.Context, logger *zap.Logger, pool *pgxpool.Pool) {
@@ -199,6 +280,7 @@ func reportStats(ctx context.Context, logger *zap.Logger, statsd statsd.ClientIn
 			{"SELECT COUNT(*) FROM devices", "apollo.registrations.devices"},
 			{"SELECT COUNT(*) FROM subreddits", "apollo.registrations.subreddits"},
 			{"SELECT COUNT(*) FROM users", "apollo.registrations.users"},
+			{"SELECT COUNT(*) FROM live_activities", "apollo.registrations.live_activities"},
 		}
 	)
 

@@ -423,6 +423,23 @@ make docker-psql
 UPDATE accounts SET check_count = 1 WHERE username = '<your-reddit-username>';
 ```
 
+### 7d. (Optional) Verify Live Activities
+
+Apollo can follow a thread as a Live Activity (Dynamic Island / Lock Screen). The backend polls the
+thread every 30 seconds for about 75 minutes and pushes updates — new top-level comments, comment
+count, and score — as APNs `liveactivity` pushes.
+
+1. Make sure your account is registered first (it is if test pushes work — registration happens
+   when Apollo launches with the backend configured).
+2. In Apollo, open a busy thread (something near the top of r/all) and start a Live Activity from
+   the post.
+3. Watch the logs: `docker compose logs -f api worker-live-activities`. You should see
+   `POST /v1/live_activities` return 200, then the worker log `sent notification` with
+   `notification#type=update` roughly every 30 seconds.
+4. The activity on the phone should update with the newest comment and fresh counts. Note iOS
+   throttles Live Activity update frequency per its own budget, so not every push is rendered
+   instantly.
+
 ---
 
 ## 8. (Optional) Open it up to the internet
@@ -583,6 +600,7 @@ the order you'd hit them:
 | `oauth revoked` right after a *successful* token refresh | User Agent missing the `(by /u/yourname)` suffix | Use a UA like `ios:com.yourname.Apollo:v1.0 (by /u/you)` |
 | First inbox message didn't notify | Expected warmup behavior | The second message onward push; or run the `UPDATE accounts SET check_count = 1` shortcut ([7c](#7c-the-first-message-warmup-gotcha)) |
 | Push works on Wi-Fi but **not on cellular** | Backend isn't reachable from the internet | Complete [Step 8](#8-optional-open-it-up-to-the-internet) |
+| Live Activity starts but never updates | `POST /v1/live_activities` got a 422 (account not registered yet) or 401 (tweak build too old to send the registration token on this path), or `BadDeviceToken` on the push (sandbox mismatch) | Check `docker compose logs api worker-live-activities`; register the account first, update the tweak, or fix `APPLE_APNS_SANDBOX` ([7d](#7d-optional-verify-live-activities)) |
 | HTTPS certificate won't issue (Caddy) | DNS not yet pointing at the host, or ports 80/443 not reachable from outside | Confirm the A record resolves to your IP and that 80/443 are forwarded/open; behind CGNAT, use [Cloudflare Tunnel](#8c-cloudflare-tunnel-no-port-forward-works-behind-cgnat) |
 | Port-forwarding never works no matter what | You're behind CGNAT | Use [Cloudflare Tunnel](#8c-cloudflare-tunnel-no-port-forward-works-behind-cgnat) |
 

@@ -31,7 +31,8 @@ Three hard prerequisites — none of these are negotiable, and skipping any of t
 
 The upstream backend was deeply tied to Christian's App Store deployment. This fork strips or reworks every assumption that depended on it.
 
-- **Stripped entirely**: App Store IAP / Apollo Ultra receipt validation (the `internal/itunes/` package and its device-deletion side effect on receipt failure), Live Activities, the `/v1/contact` endpoint, Bugsnag, Heroku's hmetrics auto-emitter, and `render.yaml`.
+- **Stripped entirely**: App Store IAP / Apollo Ultra receipt validation (the `internal/itunes/` package and its device-deletion side effect on receipt failure), the `/v1/contact` endpoint, Bugsnag, Heroku's hmetrics auto-emitter, and `render.yaml`.
+- **Live Activities restored** (after being stripped along with the above). Apollo's "follow this thread" Dynamic Island / Lock Screen activity registers via `POST /v1/live_activities`; a dedicated worker polls the thread every 30 seconds for ~75 minutes and pushes comment-count/score/newest-comment updates over APNs `liveactivity` pushes. The push topic is derived from `APPLE_APNS_TOPIC` (`<bundle-id>.push-type.liveactivity`), the gateway follows `APPLE_APNS_SANDBOX`, and the endpoint sits behind `REGISTRATION_SECRET` (needs a tweak build that sends the registration token on this path). Reddit credentials come from the registered account row, so the account must be registered (open Apollo with the backend configured) before starting an activity.
 - **APNs topic configurable** via `APPLE_APNS_TOPIC` — formerly hardcoded.
 - **APNs gateway configurable** via `APPLE_APNS_SANDBOX`. Apollo's release-signed binary always sent `sandbox=false` (it was App Store production); sideloaded builds signed under a dev cert need sandbox APNs, and pinning this per deployment avoids `BadDeviceToken` errors and the worker's aggressive auto-delete on receipt of one. The notifications worker now picks its APNs gateway from `device.Sandbox` per-device, rather than the now-vestigial `account.Development` flag.
 - **Reddit OAuth credentials are per-account**, stored on `accounts.reddit_client_id` / `reddit_client_secret` / `reddit_redirect_uri` / `reddit_user_agent`. Installed-app credentials (empty `client_secret`) are accepted. If the tweak doesn't manage to inject them on a given registration (it can't reach bodies attached to upload-tasks), the API falls back to `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` / `REDDIT_REDIRECT_URI` / `REDDIT_USER_AGENT` env vars on the API process.
@@ -158,7 +159,7 @@ Three cobra subcommands of the single `apollo` binary, each typically run as its
 
 - `apollo api` — Gorilla mux HTTP server. Routes in `internal/api/api.go`. Device + account registration, notification preference toggles, watcher CRUD, test pushes.
 - `apollo scheduler` — single-instance ticker. Every 5s claims-and-reschedules due accounts/subreddits/users with `UPDATE … SET next_check_at = $next WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED LIMIT N) RETURNING id` and publishes the IDs onto rmq queues.
-- `apollo worker --queue <name> --consumers <n>` — consumes one rmq queue. Queue names: `notifications`, `stuck-notifications`, `subreddits`, `trending`, `users`.
+- `apollo worker --queue <name> --consumers <n>` — consumes one rmq queue. Queue names: `live-activities`, `notifications`, `stuck-notifications`, `subreddits`, `trending`, `users`.
 
 Two Redis instances on purpose: one for rmq queues (`noeviction`), one for short-lived `SET key NX EX` dedup locks consulted by a Lua script the scheduler loads at startup.
 

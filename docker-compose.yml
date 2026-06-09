@@ -101,6 +101,7 @@ services:
     volumes:
       - ./docs/schema.sql:/schema.sql:ro
       - ./docker/migrate.sh:/migrate.sh:ro
+      - ./migrations/000013_restore_live_activities.up.sql:/patches/000013_restore_live_activities.up.sql:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -163,6 +164,11 @@ services:
     <<: *worker
     command: ["worker", "--queue", "users", "--consumers", "16"]
     container_name: apollo-worker-users
+
+  worker-live-activities:
+    <<: *worker
+    command: ["worker", "--queue", "live-activities", "--consumers", "16"]
+    container_name: apollo-worker-live-activities
 
 volumes:
   pgdata:
