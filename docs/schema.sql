@@ -65,3 +65,16 @@ CREATE TABLE watchers (
     author character varying(32) DEFAULT ''::character varying,
     subreddit character varying(32) DEFAULT ''::character varying
 );
+
+CREATE TABLE live_activities (
+    id SERIAL PRIMARY KEY,
+    apns_token text UNIQUE NOT NULL,
+    reddit_account_id character varying(32) NOT NULL DEFAULT '',
+    thread_id character varying(32) NOT NULL DEFAULT '',
+    subreddit character varying(32) NOT NULL DEFAULT '',
+    next_check_at timestamp without time zone,
+    expires_at timestamp without time zone,
+    development boolean DEFAULT FALSE
+);
+
+CREATE INDEX live_activities_next_check_at_idx ON live_activities(next_check_at);
