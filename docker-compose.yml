@@ -31,13 +31,13 @@ x-worker: &worker
 
 services:
   postgres:
-    image: postgres:14-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: apollo
       POSTGRES_PASSWORD: apollo
       POSTGRES_DB: apollo
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U apollo -d apollo"]
       interval: 5s
@@ -62,19 +62,19 @@ services:
         condition: service_healthy
 
   redis-queue:
-    image: redis:7-alpine
-    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    image: valkey/valkey:9.1.0-alpine
+    command: ["valkey-server", "--maxmemory-policy", "noeviction"]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   redis-locks:
-    image: redis:7-alpine
-    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    image: valkey/valkey:9.1.0-alpine
+    command: ["valkey-server", "--maxmemory-policy", "noeviction"]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -94,7 +94,7 @@ services:
     # have a known bug: 000006 and 000008 both create the same index, so
     # `migrate up` fails on a clean DB. schema.sql is the authoritative
     # consolidated schema.
-    image: postgres:14-alpine
+    image: postgres:18-alpine
     environment:
       PGPASSWORD: apollo
     entrypoint: /migrate.sh
