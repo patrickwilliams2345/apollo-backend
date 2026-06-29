@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "apollo_backend_websession",
+  "project_id": "7b222271-5ddb-4f75-8928-b07debae69fa"
+}
