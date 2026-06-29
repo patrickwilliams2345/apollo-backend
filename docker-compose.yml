@@ -102,6 +102,7 @@ services:
       - ./docs/schema.sql:/schema.sql:ro
       - ./docker/migrate.sh:/migrate.sh:ro
       - ./migrations/000013_restore_live_activities.up.sql:/patches/000013_restore_live_activities.up.sql:ro
+      - ./migrations/000014_add_reddit_auth_type.up.sql:/patches/000014_add_reddit_auth_type.up.sql:ro
     depends_on:
       postgres:
         condition: service_healthy
