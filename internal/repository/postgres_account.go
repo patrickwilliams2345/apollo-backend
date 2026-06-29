@@ -25,7 +25,7 @@ func NewPostgresAccount(conn Connection) domain.AccountRepository {
 const accountSelectColumns = `id, username, reddit_account_id, access_token, refresh_token, token_expires_at,
 	last_message_id, next_notification_check_at, next_stuck_notification_check_at,
 	check_count, development,
-	reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent`
+	reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent, reddit_auth_type`
 
 func (p *postgresAccountRepository) fetch(ctx context.Context, query string, args ...interface{}) ([]domain.Account, error) {
 	ctx, span := spanWithQuery(ctx, p.tracer, query)
@@ -58,6 +58,7 @@ func (p *postgresAccountRepository) fetch(ctx context.Context, query string, arg
 			&acc.RedditClientSecret,
 			&acc.RedditRedirectURI,
 			&acc.RedditUserAgent,
+			&acc.RedditAuthType,
 		); err != nil {
 			return nil, err
 		}
@@ -105,8 +106,8 @@ func (p *postgresAccountRepository) CreateOrUpdate(ctx context.Context, acc *dom
 	query := `
 		INSERT INTO accounts (username, reddit_account_id, access_token, refresh_token, token_expires_at,
 			last_message_id, next_notification_check_at, next_stuck_notification_check_at, is_deleted, development,
-			reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), FALSE, $7, $8, $9, $10, $11)
+			reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent, reddit_auth_type)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), FALSE, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT(username) DO
 			UPDATE SET access_token = $3,
 				refresh_token = $4,
@@ -116,7 +117,8 @@ func (p *postgresAccountRepository) CreateOrUpdate(ctx context.Context, acc *dom
 				reddit_client_id = $8,
 				reddit_client_secret = $9,
 				reddit_redirect_uri = $10,
-				reddit_user_agent = $11
+				reddit_user_agent = $11,
+				reddit_auth_type = $12
 		RETURNING id`
 
 	ctx, span := spanWithQuery(ctx, p.tracer, query)
@@ -136,6 +138,7 @@ func (p *postgresAccountRepository) CreateOrUpdate(ctx context.Context, acc *dom
 		acc.RedditClientSecret,
 		acc.RedditRedirectURI,
 		acc.RedditUserAgent,
+		acc.RedditAuthType,
 	).Scan(&acc.ID); err != nil {
 		span.SetStatus(codes.Error, "failed upserting account")
 		span.RecordError(err)
@@ -150,8 +153,8 @@ func (p *postgresAccountRepository) Create(ctx context.Context, acc *domain.Acco
 		INSERT INTO accounts
 			(username, reddit_account_id, access_token, refresh_token, token_expires_at,
 			last_message_id, next_notification_check_at, next_stuck_notification_check_at, is_deleted, development,
-			reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, $9, $10, $11, $12, $13)
+			reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent, reddit_auth_type)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, $9, $10, $11, $12, $13, $14)
 		RETURNING id`
 
 	ctx, span := spanWithQuery(ctx, p.tracer, query)
@@ -173,6 +176,7 @@ func (p *postgresAccountRepository) Create(ctx context.Context, acc *domain.Acco
 		acc.RedditClientSecret,
 		acc.RedditRedirectURI,
 		acc.RedditUserAgent,
+		acc.RedditAuthType,
 	).Scan(&acc.ID); err != nil {
 		span.SetStatus(codes.Error, "failed inserting account")
 		span.RecordError(err)
@@ -198,7 +202,8 @@ func (p *postgresAccountRepository) Update(ctx context.Context, acc *domain.Acco
 			reddit_client_id = $12,
 			reddit_client_secret = $13,
 			reddit_redirect_uri = $14,
-			reddit_user_agent = $15
+			reddit_user_agent = $15,
+			reddit_auth_type = $16
 		WHERE id = $1`
 
 	ctx, span := spanWithQuery(ctx, p.tracer, query)
@@ -222,6 +227,7 @@ func (p *postgresAccountRepository) Update(ctx context.Context, acc *domain.Acco
 		acc.RedditClientSecret,
 		acc.RedditRedirectURI,
 		acc.RedditUserAgent,
+		acc.RedditAuthType,
 	); err != nil {
 		span.SetStatus(codes.Error, "failed to update account")
 		span.RecordError(err)
@@ -282,7 +288,7 @@ func (p *postgresAccountRepository) GetByAPNSToken(ctx context.Context, token st
 		SELECT accounts.id, username, accounts.reddit_account_id, access_token, refresh_token, token_expires_at,
 			last_message_id, next_notification_check_at, next_stuck_notification_check_at,
 			check_count, development,
-			reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent
+			reddit_client_id, reddit_client_secret, reddit_redirect_uri, reddit_user_agent, reddit_auth_type
 		FROM accounts
 		INNER JOIN devices_accounts ON accounts.id = devices_accounts.account_id
 		INNER JOIN devices ON devices.id = devices_accounts.device_id

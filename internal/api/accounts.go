@@ -122,14 +122,17 @@ func (a *api) disassociateAccountHandler(w http.ResponseWriter, r *http.Request)
 // and database IDs are not user-controlled, and the per-account Reddit OAuth
 // credentials are mandatory.
 type accountRegistrationRequest struct {
-	Username     string `json:"username"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ClientID     string `json:"reddit_client_id"`
-	ClientSecret string `json:"reddit_client_secret"`
-	RedirectURI  string `json:"reddit_redirect_uri"`
-	UserAgent    string `json:"reddit_user_agent"`
-	Development  bool   `json:"development,omitempty"`
+	Username      string `json:"username"`
+	AccessToken   string `json:"access_token"`
+	RefreshToken  string `json:"refresh_token"`
+	ClientID      string `json:"reddit_client_id"`
+	ClientSecret  string `json:"reddit_client_secret"`
+	RedirectURI   string `json:"reddit_redirect_uri"`
+	UserAgent     string `json:"reddit_user_agent"`
+	AuthType      string `json:"reddit_auth_type"`
+	SessionCookie string `json:"reddit_session_cookie"`
+	Modhash       string `json:"reddit_modhash"`
+	Development   bool   `json:"development,omitempty"`
 }
 
 // UnmarshalJSON accepts both the snake_case keys our struct documents and
@@ -178,7 +181,7 @@ func (r *accountRegistrationRequest) fillRedditCredsFromEnv() {
 }
 
 func (req *accountRegistrationRequest) toAccount() domain.Account {
-	return domain.Account{
+	acct := domain.Account{
 		Username:           req.Username,
 		AccessToken:        req.AccessToken,
 		RefreshToken:       req.RefreshToken,
@@ -187,7 +190,13 @@ func (req *accountRegistrationRequest) toAccount() domain.Account {
 		RedditClientSecret: req.ClientSecret,
 		RedditRedirectURI:  req.RedirectURI,
 		RedditUserAgent:    req.UserAgent,
+		RedditAuthType:     req.AuthType,
 	}
+	if req.AuthType == "web_session" {
+		acct.AccessToken = req.SessionCookie
+		acct.RefreshToken = req.Modhash
+	}
+	return acct
 }
 
 // registerAccount validates the supplied credentials by performing the same
@@ -197,12 +206,15 @@ func (a *api) registerAccount(ctx context.Context, req accountRegistrationReques
 	acct := req.toAccount()
 
 	creds := reddit.AuthCredentials{
-		RedditID:     reddit.SkipRateLimiting,
-		RefreshToken: acct.RefreshToken,
-		AccessToken:  acct.AccessToken,
-		ClientID:     acct.RedditClientID,
-		ClientSecret: acct.RedditClientSecret,
-		UserAgent:    acct.RedditUserAgent,
+		RedditID:      reddit.SkipRateLimiting,
+		RefreshToken:  acct.RefreshToken,
+		AccessToken:   acct.AccessToken,
+		ClientID:      acct.RedditClientID,
+		ClientSecret:  acct.RedditClientSecret,
+		UserAgent:     acct.RedditUserAgent,
+		AuthType:      acct.RedditAuthType,
+		SessionCookie: acct.AccessToken,
+		Modhash:       acct.RefreshToken,
 	}
 
 	rac := a.reddit.NewAuthenticatedClient(creds)
@@ -288,7 +300,9 @@ func (a *api) upsertAccountsHandler(w http.ResponseWriter, r *http.Request) {
 		// Defensive: registerAccount → NewAuthenticatedClient panics on empty
 		// tokens. Return a clean 422 with diagnostics if anything's still
 		// missing after the env-var backfill.
-		if req.AccessToken == "" || req.RefreshToken == "" || req.ClientID == "" {
+		missingOAuth := req.AuthType != "web_session" && (req.AccessToken == "" || req.RefreshToken == "" || req.ClientID == "")
+		missingWebSession := req.AuthType == "web_session" && req.SessionCookie == ""
+		if missingOAuth || missingWebSession {
 			a.logger.Error("upsertAccounts missing credentials",
 				zap.Int("index", i),
 				zap.String("username", req.Username),

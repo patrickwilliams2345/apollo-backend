@@ -7,6 +7,13 @@ else
   echo "schema loaded"
 fi
 
+if psql -h postgres -U apollo -d apollo -tAc "SELECT 1 FROM information_schema.columns WHERE table_name='accounts' AND column_name='reddit_auth_type'" | grep -q 1; then
+  echo "accounts.reddit_auth_type present, skipping patch"
+else
+  psql -h postgres -U apollo -d apollo -v ON_ERROR_STOP=1 -f /patches/000014_add_reddit_auth_type.up.sql
+  echo "accounts.reddit_auth_type patch applied"
+fi
+
 # Idempotent patches for tables added after a deployment first loaded
 # schema.sql. The full-schema path above only runs on a clean database, so
 # existing installs pick up additions here.

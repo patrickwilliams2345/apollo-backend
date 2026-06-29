@@ -188,7 +188,7 @@ func (sc *subredditsConsumer) Consume(delivery rmq.Delivery) {
 		i := rand.Intn(len(watchers))
 		watcher := watchers[i]
 
-		rac := sc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent})
+		rac := sc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent, AuthType: watcher.Account.RedditAuthType, SessionCookie: watcher.Account.AccessToken, Modhash: watcher.Account.RefreshToken})
 		sps, err := rac.SubredditNew(ctx,
 			subreddit.Name,
 			reddit.WithQuery("before", before),
@@ -274,7 +274,7 @@ func (sc *subredditsConsumer) Consume(delivery rmq.Delivery) {
 		i := rand.Intn(len(watchers))
 		watcher := watchers[i]
 
-		rac := sc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent})
+		rac := sc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent, AuthType: watcher.Account.RedditAuthType, SessionCookie: watcher.Account.AccessToken, Modhash: watcher.Account.RefreshToken})
 		sps, err := rac.SubredditHot(ctx,
 			subreddit.Name,
 			reddit.WithQuery("limit", "100"),

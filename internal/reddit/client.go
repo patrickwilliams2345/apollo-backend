@@ -122,9 +122,12 @@ type AuthenticatedClient struct {
 	refreshToken string
 	accessToken  string
 
-	clientID     string
-	clientSecret string
-	userAgent    string
+	clientID      string
+	clientSecret  string
+	userAgent     string
+	authType      string
+	sessionCookie string
+	modhash       string
 }
 
 // AuthCredentials bundles the per-account Reddit OAuth state the backend
@@ -132,12 +135,15 @@ type AuthenticatedClient struct {
 // and UserAgent come from the account row (each sideloaded Apollo build
 // registers its own Reddit app and supplies these at registration time).
 type AuthCredentials struct {
-	RedditID     string
-	RefreshToken string
-	AccessToken  string
-	ClientID     string
-	ClientSecret string
-	UserAgent    string
+	RedditID      string
+	RefreshToken  string
+	AccessToken   string
+	ClientID      string
+	ClientSecret  string
+	UserAgent     string
+	AuthType      string
+	SessionCookie string
+	Modhash       string
 }
 
 func (rc *Client) NewAuthenticatedClient(creds AuthCredentials) *AuthenticatedClient {
@@ -145,15 +151,15 @@ func (rc *Client) NewAuthenticatedClient(creds AuthCredentials) *AuthenticatedCl
 		panic("requires a redditId")
 	}
 
-	if creds.AccessToken == "" {
+	if creds.AuthType != "web_session" && creds.AccessToken == "" {
 		panic("requires an access token")
 	}
 
-	if creds.RefreshToken == "" {
+	if creds.AuthType != "web_session" && creds.RefreshToken == "" {
 		panic("requires a refresh token")
 	}
 
-	if creds.ClientID == "" {
+	if creds.AuthType != "web_session" && creds.ClientID == "" {
 		panic("requires a Reddit OAuth client ID")
 	}
 
@@ -163,15 +169,21 @@ func (rc *Client) NewAuthenticatedClient(creds AuthCredentials) *AuthenticatedCl
 	if creds.UserAgent == "" {
 		panic("requires a User-Agent")
 	}
+	if creds.AuthType == "web_session" && creds.SessionCookie == "" {
+		panic("requires a Reddit web session cookie")
+	}
 
 	return &AuthenticatedClient{
-		client:       rc,
-		redditId:     creds.RedditID,
-		refreshToken: creds.RefreshToken,
-		accessToken:  creds.AccessToken,
-		clientID:     creds.ClientID,
-		clientSecret: creds.ClientSecret,
-		userAgent:    creds.UserAgent,
+		client:        rc,
+		redditId:      creds.RedditID,
+		refreshToken:  creds.RefreshToken,
+		accessToken:   creds.AccessToken,
+		clientID:      creds.ClientID,
+		clientSecret:  creds.ClientSecret,
+		userAgent:     creds.UserAgent,
+		authType:      creds.AuthType,
+		sessionCookie: creds.SessionCookie,
+		modhash:       creds.Modhash,
 	}
 }
 
@@ -350,6 +362,9 @@ func (rac *AuthenticatedClient) request(ctx context.Context, r *Request, errmap 
 	// Per-account User-Agent: Reddit requires the UA to match the registered
 	// OAuth app's owner, and each sideloaded Apollo build has its own.
 	r.userAgent = rac.userAgent
+	if rac.authType == "web_session" {
+		WithWebSession(rac.sessionCookie, rac.modhash)(r)
+	}
 
 	bb, rli, err := rac.client.doRequest(ctx, r, errmap)
 
@@ -461,6 +476,13 @@ func (rac *AuthenticatedClient) markRateLimited(rli *RateLimitingInfo) error {
 }
 
 func (rac *AuthenticatedClient) RefreshTokens(ctx context.Context, opts ...RequestOption) (*RefreshTokenResponse, error) {
+	if rac.authType == "web_session" {
+		return &RefreshTokenResponse{
+			AccessToken:  rac.sessionCookie,
+			RefreshToken: rac.modhash,
+			Expiry:       365 * 24 * time.Hour,
+		}, nil
+	}
 	errmap := map[int]error{
 		400: ErrOauthRevoked,
 		429: ErrTooManyRequests,

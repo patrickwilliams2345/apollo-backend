@@ -22,6 +22,8 @@ type Request struct {
 	url                string
 	auth               string
 	userAgent          string
+	webSessionCookie   string
+	webSessionModhash  string
 	tags               []string
 	emptyResponseBytes int
 	retry              bool
@@ -64,6 +66,11 @@ func NewRequest(opts ...RequestOption) *Request {
 }
 
 func (r *Request) HTTPRequest(ctx context.Context) (*http.Request, error) {
+	if r.webSessionCookie != "" {
+		r.token = ""
+		r.auth = ""
+		r.url = webSessionURL(r.url)
+	}
 	req, err := http.NewRequestWithContext(ctx, r.method, r.url, strings.NewReader(r.body.Encode()))
 	req.URL.RawQuery = r.query.Encode()
 
@@ -89,8 +96,28 @@ func (r *Request) HTTPRequest(ctx context.Context) (*http.Request, error) {
 	if r.auth != "" {
 		req.Header.Add("Authorization", fmt.Sprintf("Basic %s", r.auth))
 	}
+	if r.webSessionCookie != "" {
+		req.Header.Set("Cookie", r.webSessionCookie)
+		if r.method != http.MethodGet && r.method != http.MethodHead && r.webSessionModhash != "" {
+			req.Header.Set("X-Modhash", r.webSessionModhash)
+		}
+	}
 
 	return req, err
+}
+
+func webSessionURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host != "oauth.reddit.com" {
+		return raw
+	}
+	u.Host = "www.reddit.com"
+	if u.Path == "/api/v1/me" {
+		u.Path = "/api/me.json"
+	} else if !strings.HasPrefix(u.Path, "/api/") && !strings.HasSuffix(u.Path, ".json") {
+		u.Path = strings.TrimSuffix(u.Path, "/") + ".json"
+	}
+	return u.String()
 }
 
 func WithTags(tags []string) RequestOption {
@@ -127,6 +154,13 @@ func WithUserAgent(ua string) RequestOption {
 func WithToken(token string) RequestOption {
 	return func(req *Request) {
 		req.token = token
+	}
+}
+
+func WithWebSession(cookie, modhash string) RequestOption {
+	return func(req *Request) {
+		req.webSessionCookie = cookie
+		req.webSessionModhash = modhash
 	}
 }
 

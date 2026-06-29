@@ -185,7 +185,7 @@ func (lac *liveActivitiesConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
-	rac := lac.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: account.RefreshToken, AccessToken: account.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent})
+	rac := lac.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: account.RefreshToken, AccessToken: account.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent, AuthType: account.RedditAuthType, SessionCookie: account.AccessToken, Modhash: account.RefreshToken})
 	logger = logger.With(
 		zap.String("account#reddit_account_id", la.RedditAccountID),
 		zap.String("account#access_token", rac.ObfuscatedAccessToken()),
@@ -212,7 +212,7 @@ func (lac *liveActivitiesConsumer) Consume(delivery rmq.Delivery) {
 		_ = lac.accountRepo.Update(ctx, &account)
 
 		// Refresh client
-		rac = lac.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: tokens.RefreshToken, AccessToken: tokens.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent})
+		rac = lac.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: tokens.RefreshToken, AccessToken: tokens.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent, AuthType: account.RedditAuthType, SessionCookie: account.AccessToken, Modhash: account.RefreshToken})
 	}
 
 	logger.Debug("fetching latest comments")

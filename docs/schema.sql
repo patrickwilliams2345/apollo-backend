@@ -14,7 +14,8 @@ CREATE TABLE accounts (
     reddit_client_id character varying(64) NOT NULL DEFAULT '',
     reddit_client_secret character varying(128) NOT NULL DEFAULT '',
     reddit_redirect_uri character varying(255) NOT NULL DEFAULT '',
-    reddit_user_agent character varying(255) NOT NULL DEFAULT ''
+    reddit_user_agent character varying(255) NOT NULL DEFAULT '',
+    reddit_auth_type character varying(16) NOT NULL DEFAULT 'oauth'
 );
 
 CREATE TABLE devices (

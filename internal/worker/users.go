@@ -167,7 +167,7 @@ func (uc *usersConsumer) Consume(delivery rmq.Delivery) {
 	watcher := watchers[i]
 
 	acc, _ := uc.accountRepo.GetByID(ctx, watcher.AccountID)
-	rac := uc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: acc.AccountID, RefreshToken: acc.RefreshToken, AccessToken: acc.AccessToken, ClientID: acc.RedditClientID, ClientSecret: acc.RedditClientSecret, UserAgent: acc.RedditUserAgent})
+	rac := uc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: acc.AccountID, RefreshToken: acc.RefreshToken, AccessToken: acc.AccessToken, ClientID: acc.RedditClientID, ClientSecret: acc.RedditClientSecret, UserAgent: acc.RedditUserAgent, AuthType: acc.RedditAuthType, SessionCookie: acc.AccessToken, Modhash: acc.RefreshToken})
 
 	ru, err := rac.UserAbout(ctx, user.Name)
 	if err != nil {

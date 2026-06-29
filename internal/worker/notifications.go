@@ -178,7 +178,7 @@ func (nc *notificationsConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
-	rac := nc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: account.RefreshToken, AccessToken: account.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent})
+	rac := nc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: account.RefreshToken, AccessToken: account.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent, AuthType: account.RedditAuthType, SessionCookie: account.AccessToken, Modhash: account.RefreshToken})
 	logger = logger.With(
 		zap.String("account#username", account.NormalizedUsername()),
 		zap.String("account#access_token", rac.ObfuscatedAccessToken()),
@@ -208,7 +208,7 @@ func (nc *notificationsConsumer) Consume(delivery rmq.Delivery) {
 		_ = nc.accountRepo.Update(ctx, &account)
 
 		// Refresh client
-		rac = nc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: tokens.RefreshToken, AccessToken: tokens.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent})
+		rac = nc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: tokens.RefreshToken, AccessToken: tokens.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent, AuthType: account.RedditAuthType, SessionCookie: account.AccessToken, Modhash: account.RefreshToken})
 		logger = logger.With(
 			zap.String("account#access_token", rac.ObfuscatedAccessToken()),
 			zap.String("account#refresh_token", rac.ObfuscatedRefreshToken()),

@@ -34,6 +34,7 @@ type Account struct {
 	RedditClientSecret string
 	RedditRedirectURI  string // accepted at registration but only used for diagnostics
 	RedditUserAgent    string
+	RedditAuthType     string
 
 	// Tracking how far behind we are
 	LastMessageID                string
@@ -47,14 +48,16 @@ func (acct *Account) NormalizedUsername() string {
 }
 
 func (acct *Account) Validate() error {
-	return validation.ValidateStruct(acct,
+	rules := []*validation.FieldRules{
 		validation.Field(&acct.Username, validation.Required, validation.Length(3, 32)),
 		validation.Field(&acct.AccountID, validation.Required, validation.Length(4, 9)),
-		validation.Field(&acct.RedditClientID, validation.Required),
-		// RedditClientSecret intentionally not Required — installed-app
-		// Reddit credentials legitimately have an empty secret.
 		validation.Field(&acct.RedditUserAgent, validation.Required),
-	)
+		validation.Field(&acct.RedditAuthType, validation.In("", "oauth", "web_session")),
+	}
+	if acct.RedditAuthType != "web_session" {
+		rules = append(rules, validation.Field(&acct.RedditClientID, validation.Required))
+	}
+	return validation.ValidateStruct(acct, rules...)
 }
 
 // AccountRepository represents the account's repository contract

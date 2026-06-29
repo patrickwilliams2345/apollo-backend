@@ -164,7 +164,7 @@ func (tc *trendingConsumer) Consume(delivery rmq.Delivery) {
 	// Grab last month's top posts so we calculate a trending average
 	i := rand.Intn(len(watchers))
 	watcher := watchers[i]
-	rac := tc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent})
+	rac := tc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent, AuthType: watcher.Account.RedditAuthType, SessionCookie: watcher.Account.AccessToken, Modhash: watcher.Account.RefreshToken})
 
 	tps, err := rac.SubredditTop(ctx, subreddit.Name, reddit.WithQuery("t", "week"), reddit.WithQuery("show", "all"), reddit.WithQuery("limit", "25"))
 	if err != nil {
@@ -206,7 +206,7 @@ func (tc *trendingConsumer) Consume(delivery rmq.Delivery) {
 	// Grab hot posts and filter out anything that's > 2 days old
 	i = rand.Intn(len(watchers))
 	watcher = watchers[i]
-	rac = tc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent})
+	rac = tc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: watcher.Account.AccountID, RefreshToken: watcher.Account.RefreshToken, AccessToken: watcher.Account.AccessToken, ClientID: watcher.Account.RedditClientID, ClientSecret: watcher.Account.RedditClientSecret, UserAgent: watcher.Account.RedditUserAgent, AuthType: watcher.Account.RedditAuthType, SessionCookie: watcher.Account.AccessToken, Modhash: watcher.Account.RefreshToken})
 
 	hps, err := rac.SubredditHot(ctx, subreddit.Name, reddit.WithQuery("show", "all"), reddit.WithQuery("always_show_media", "1"))
 	if err != nil {

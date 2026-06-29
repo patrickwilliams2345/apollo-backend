@@ -139,7 +139,7 @@ func (snc *stuckNotificationsConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
-	rac := snc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: account.RefreshToken, AccessToken: account.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent})
+	rac := snc.reddit.NewAuthenticatedClient(reddit.AuthCredentials{RedditID: account.AccountID, RefreshToken: account.RefreshToken, AccessToken: account.AccessToken, ClientID: account.RedditClientID, ClientSecret: account.RedditClientSecret, UserAgent: account.RedditUserAgent, AuthType: account.RedditAuthType, SessionCookie: account.AccessToken, Modhash: account.RefreshToken})
 
 	snc.logger.Debug("fetching last thing",
 		zap.Int64("account#id", id),
